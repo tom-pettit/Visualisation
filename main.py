@@ -24,14 +24,17 @@ new_grid = xr.DataArray(
 
 print(new_grid)
 
-region = "10/20/35/45"
+region = "90/110/5/35"
+minlong, maxlong, minlat, maxlat = region.split('/')
+minlong, maxlong, minlat, maxlat = float(minlong), float(maxlong), float(minlat), float(maxlat)
 perspective = [150, 30]
 selected_long = 0
 selected_lat = 0
 selected_point_height = new_grid[selected_long, selected_lat].data
+contour_height = 1
 
 whole_fig = pygmt.Figure()
-whole_fig.grdimage(grid=new_grid, cmap="geo", projection="Q12c")
+whole_fig.grdimage(grid=new_grid, cmap="oleron", projection="Q12c")
 
 whole_fig.savefig('wholefig.png')
 
@@ -51,13 +54,18 @@ zoomed_fig.grdview(
     # Sets the height of the three-dimensional relief at 1.5 centimeters
     zsize="2.5c",
     surftype="s",
-    cmap="geo"
+    cmap="oleron"
 )
 
-zoomed_flat_fig = pygmt.Figure()
-zoomed_flat_fig.grdimage(grid=new_grid, cmap="geo", projection="Q12c", region=region)
-zoomed_flat_fig.savefig('tempflatfig.png')
+zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"])
 zoomed_fig.savefig('tempfig.png')
+
+
+zoomed_flat_fig = pygmt.Figure()
+zoomed_flat_fig.grdimage(grid=new_grid, cmap="oleron", projection="Q12c", region=region)
+zoomed_flat_fig.grdcontour(grid=new_grid, interval=1, annotation=1)
+
+zoomed_flat_fig.savefig('tempflatfig.png')
 import cv2 
 
 img = cv2.imread('wholefig.png')
@@ -69,7 +77,7 @@ resized = cv2.resize(img, (600,300))
 cv2.imwrite('tempfig.png', resized)
 
 img = cv2.imread('tempflatfig.png')
-resized = cv2.resize(img, (450,300))
+resized = cv2.resize(img, (600,300))
 cv2.imwrite('tempflatfig.png', resized)
 
 # [130, 15], "10/20/35/45"
@@ -94,9 +102,10 @@ def change_perspective(perspective):
         # Sets the height of the three-dimensional relief at 1.5 centimeters
         zsize="1.5c",
         surftype="s",
-        cmap="geo"
+        cmap="oleron"
     )
     
+    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"])
 
     zoomed_fig.savefig('tempfig.png')
 
@@ -125,13 +134,16 @@ def change_zoomed_region(region):
         # Sets the height of the three-dimensional relief at 1.5 centimeters
         zsize="1.5c",
         surftype="s",
-        cmap="geo"
+        cmap="oleron"
     )
+    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"])
     zoomed_flat_fig = pygmt.Figure()
-    zoomed_flat_fig.grdimage(grid=new_grid, cmap="geo", projection="Q12c", region=region)
+    zoomed_flat_fig.grdimage(grid=new_grid, cmap="oleron", projection="Q12c", region=region)
+    zoomed_flat_fig.grdcontour(grid=new_grid, interval=1, annotation=1)
+
     zoomed_flat_fig.savefig('tempflatfig.png')
     img = cv2.imread('tempflatfig.png')
-    resized = cv2.resize(img, (450,300))
+    resized = cv2.resize(img, (600,300))
     cv2.imwrite('tempflatfig.png', resized)
 
     zoomed_fig.savefig('tempfig.png')
@@ -142,6 +154,18 @@ def change_zoomed_region(region):
 
     print('done')
 
+def change_contours(height_choice):
+    import os
+    os.remove('tempflatfig.png')
+    zoomed_flat_fig = pygmt.Figure()
+    zoomed_flat_fig.grdimage(grid=new_grid, cmap="oleron", projection="Q12c", region=region)
+    zoomed_flat_fig.grdcontour(grid=new_grid, interval=height_choice, annotation=1)
+
+    zoomed_flat_fig.savefig('tempflatfig.png')
+    img = cv2.imread('tempflatfig.png')
+    resized = cv2.resize(img, (600,300))
+    cv2.imwrite('tempflatfig.png', resized)
+
 import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import PySimpleGUI as sg
@@ -149,23 +173,26 @@ import PySimpleGUI as sg
 # Define the window layout
 whole_graph = sg.Graph(canvas_size=(600,300), graph_bottom_left=(0, 0), graph_top_right=(600,300), enable_events=True, drag_submits=True, key='WholeGraph')
 layout = [
-    [sg.Text("Viewing Moon Surface at Region: "+str(region)+str(' At Azimuth: '+str(perspective[0])+' and Elevation: '+str(perspective[1])), key='title')],
-
+    [sg.Text("Whole Moon Surface")],
+    [sg.Text("Draw a rectangle over a region to zoom in")],
     [whole_graph],
-    [sg.Graph(canvas_size=(600,300), graph_bottom_left=(0, 0), graph_top_right=(600,300), enable_events=True, drag_submits=True, key='ZoomedGraph'), 
-     sg.Graph(canvas_size=(450,300), graph_bottom_left=(0, 0), graph_top_right=(450,300), enable_events=True, drag_submits=True, key='ZoomedFlatGraph'),
-     sg.Text('Longitude: '+str(selected_long)+' Latitude: '+str(selected_lat)+' Height: '+str(selected_point_height)+'m',font=('Arial Bold', 12), key='ChosenPointHeight')
-    ],
-
-    [sg.Text('Drag on the map of the whole moon above to zoom into a region',font=('Arial Bold', 12)),
-     sg.Text('Click on the zoomed in map to view the height of a particular point',font=('Arial Bold', 12)),
-     sg.Text('View height data for a particular point of longitude and latitude',font=('Arial Bold', 12))
+    [sg.Text("Viewing Moon Surface at Region: "+"Long: "+str(minlong)+" to "+str(maxlong)+" Lat: "+str(minlat)+" to "+str(maxlat), key='region_title')],
+    [sg.Text('At Azimuth: '+str(perspective[0])+' and Elevation: '+str(perspective[1]), key='perspective_title')],
+    [sg.Text('Contour Height Display Interval: '+str(contour_height), key='contour_height')],
+    [sg.Graph(canvas_size=(600,300), graph_bottom_left=(0, 0), graph_top_right=(600,300), enable_events=True, drag_submits=True, key='ZoomedGraph'),
+     sg.Graph(canvas_size=(600,300), graph_bottom_left=(0, 0), graph_top_right=(600,300), enable_events=True, drag_submits=True, key='ZoomedFlatGraph')
      ],
+    [sg.Text('Longitude: '+"{:.3f}".format(selected_long)+' Latitude: '+"{:.3f}".format(selected_lat)+' Height: '+"{:.3f}".format(float(selected_point_height))+'m',font=('Arial Bold', 20), key='ChosenPointHeight', justification='left')],
 
     [sg.Text('Enter a View Azimuth and View Elevation in the form: [View Azimuth, View Elevation]',font=('Arial Bold', 12)), 
         sg.Input('', enable_events=True, key='Perspective', font=('Arial Bold', 20), expand_x=True, justification='center'),
         sg.Button("Change Perspective")
+    ],
+    [sg.Text('Enter a Height at which Isocontours are Generated (Default: 1): ',font=('Arial Bold', 12)), 
+        sg.Input('', enable_events=True, key='Iscontour_height', font=('Arial Bold', 20), expand_x=True, justification='center'),
+        sg.Button("Change Isocontours")
     ]
+
 ]
 
 # Create the form and show it without the plot
@@ -181,6 +208,14 @@ window = sg.Window(
 window['WholeGraph'].draw_image(filename='./wholefig.png', location=(0,300))
 window['ZoomedGraph'].draw_image(filename='./tempfig.png', location=(0,300))
 window['ZoomedFlatGraph'].draw_image(filename='./tempflatfig.png', location=(0,300))
+minlong, maxlong, minlat, maxlat = region.split('/')
+
+xmin = (float(minlong)/0.6) + 300
+xmax = (float(maxlong)/0.6) + 300
+ymin = (float(minlat)/0.6) + 150
+ymax = (float(maxlat)/0.6) + 150
+
+starting_rect = whole_graph.draw_rectangle((float(xmin), float(ymin)), (float(xmax), float(ymax)), line_color='red')
 
 dragging = False
 start_point = end_point = prior_rect = None
@@ -195,10 +230,19 @@ while True:
       azimuth = int(azimuth)
       elevation = int(elevation)
       perspective = [azimuth, elevation]
-      window['title'].update("Viewing Moon Surface at Region: "+str(region)+str(' At Azimuth: '+str(perspective[0])+' and Elevation: '+str(perspective[1])))
+      window['perspective_title'].update('At Azimuth: '+str(perspective[0])+' and Elevation: '+str(perspective[1]))
+      window.refresh()
+
+   if event == 'Change Isocontours':
+      new_height = float(values['Iscontour_height'])
+      contour_height = new_height
+      change_contours(new_height)
+      window['ZoomedFlatGraph'].draw_image(filename='./tempflatfig.png', location=(0,300))
+      window['contour_height'].update('Contour Height Display Interval: '+str(contour_height))
       window.refresh()
 
    elif event == "WholeGraph":  # if there's a "Graph" event, then it's a mouse
+        whole_graph.delete_figure(starting_rect)
         x, y = values[event]
         if not dragging:
             start_point = (x, y)
@@ -213,6 +257,10 @@ while True:
    elif event == 'ZoomedFlatGraph':
        x, y = values[event] 
 
+       window['ZoomedFlatGraph'].erase()
+       window['ZoomedFlatGraph'].draw_image(filename='./tempflatfig.png', location=(0,300))
+       window['ZoomedFlatGraph'].draw_point((x,y), size=15, color='red')
+
        xmin, xmax, ymin, ymax = region.split('/')
 
        xmin, xmax, ymin, ymax = float(xmin), float(xmax), float(ymin), float(ymax) 
@@ -220,7 +268,7 @@ while True:
        actual_width = xmax - xmin
        actual_height = ymax - ymin
 
-       long = (x / 450) * actual_width + xmin 
+       long = (x / 600) * actual_width + xmin 
        lat = (y / 300) * actual_height + ymin 
 
        def find_nearest(array, value):
@@ -231,45 +279,45 @@ while True:
        selected_long = long 
        selected_lat = lat
 
-       print(selected_long, selected_lat)
-       selected_point_height = new_grid.sel(x = selected_long, y = selected_lat, method = 'nearest') 
+       selected_point_height = new_grid.sel(x = selected_long, y = selected_lat, method = 'nearest').data
 
-       window['ChosenPointHeight'].update('Longitude: '+str(selected_long)+' Latitude: '+str(selected_lat)+' Height: '+str(selected_point_height)+'m')
+       window['ChosenPointHeight'].update('Longitude: '+"{:.3f}".format(selected_long)+' Latitude: '+"{:.3f}".format(selected_lat)+' Height: '+"{:.3f}".format(float(selected_point_height))+'m')
 
 
    elif event == 'WholeGraph+UP':  
-       start_lat = start_point[1] - 150
-       start_long = start_point[0] - 300
-        
-       start_lat = 0.6 * start_lat
-       start_long = 0.6 * start_long 
+       if start_point is not None and end_point is not None:
+        start_lat = start_point[1] - 150
+        start_long = start_point[0] - 300
+            
+        start_lat = 0.6 * start_lat
+        start_long = 0.6 * start_long 
 
-       end_lat = end_point[1] - 150
-       end_long = end_point[0] - 300
-        
-       end_lat = 0.6 * end_lat
-       end_long = 0.6 * end_long 
+        end_lat = end_point[1] - 150
+        end_long = end_point[0] - 300
+            
+        end_lat = 0.6 * end_lat
+        end_long = 0.6 * end_long 
 
-        # xmin/xmax/ymin/ymax
-       lats = [start_lat, end_lat]
-       longs = [start_long, end_long]
-       xmin = min(longs)
-       xmax = max(longs)
-       ymin = min(lats)
-       ymax = max(lats)
+            # xmin/xmax/ymin/ymax
+        lats = [start_lat, end_lat]
+        longs = [start_long, end_long]
+        xmin = min(longs)
+        xmax = max(longs)
+        ymin = min(lats)
+        ymax = max(lats)
 
-       region = str(xmin)+'/'+str(xmax)+'/'+str(ymin)+'/'+str(ymax)
+        minlong, maxlong, minlat, maxlat = float(xmin), float(xmax), float(ymin), float(ymax)
 
-       print(region)
+        region = str(xmin)+'/'+str(xmax)+'/'+str(ymin)+'/'+str(ymax)
 
-       change_zoomed_region(region)
-       window['ZoomedGraph'].draw_image(filename='./tempfig.png', location=(0,300))
-       window['ZoomedFlatGraph'].draw_image(filename='./tempflatfig.png', location=(0,300))
+        change_zoomed_region(region)
+        window['ZoomedGraph'].draw_image(filename='./tempfig.png', location=(0,300))
+        window['ZoomedFlatGraph'].draw_image(filename='./tempflatfig.png', location=(0,300))
 
-       window['title'].update("Viewing Moon Surface at Region: "+str(region)+str(' At Azimuth: '+str(perspective[0])+' and Elevation: '+str(perspective[1])))
-       window.refresh()
-       start_point, end_point = None, None 
-       dragging = False
+        window['region_title'].update("Viewing Moon Surface at Region: "+"Long: "+"{:.3f}".format(minlong)+" to "+"{:.3f}".format(maxlong)+" Lat: "+"{:.3f}".format(minlat)+" to "+"{:.3f}".format(maxlat))
+        window.refresh()
+        start_point, end_point = None, None 
+        dragging = False
 
   
    if event == sg.WIN_CLOSED or event == 'Exit':
