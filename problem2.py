@@ -22,6 +22,10 @@ new_grid = xr.DataArray(
     dims=("y", "x"),
 )
 
+# new_grid = pygmt.grdsample(
+#     grid=new_grid, translate=True, spacing=[0.25, 0.25]
+# )
+
 color_dataarray =  rioxarray.open_rasterio('./dataset/color_dataset/lroc_color_poles_4k.tif')
 color_tif_shape = color_dataarray.shape
 
@@ -30,17 +34,16 @@ import xarray as xr
 import numpy as np 
 
 color_height, color_width = color_dataarray.shape
+# print(color_dataarray)
 
 color_grid = xr.DataArray(
     data=color_dataarray,
     coords=dict(
-        y=np.linspace(start=-90, stop=90, num=color_height),
-        x=np.linspace(start=-180, stop=180, num=color_width),
+        y=np.linspace(start=0, stop=color_height, num=color_height),
+        x=np.linspace(start=0, stop=color_width, num=color_width),
     ),
     dims=("y", "x"),
 )
-
-print(color_grid)
 
 
 region = "90/110/5/35"
@@ -55,7 +58,22 @@ projection = ''
 cmap = 'gray'
 
 whole_fig = pygmt.Figure()
-whole_fig.grdimage(grid=color_grid, cmap="gray", projection="Q12C")
+# whole_fig.grdimage(grid=color_grid, cmap="gray", projection="Q12C")
+# print(color_grid)
+
+# color_grid = pygmt.grdsample(
+#     grid=color_grid, translate=True, spacing=[0.5, 0.5]
+# )
+
+print(color_grid)
+
+color_grid = pygmt.grdproject(grid=color_grid, projection="x1:400")
+
+print(color_grid)
+
+whole_fig.grdimage(grid=color_grid, cmap='gray')
+
+# print(new_grid)
 
 whole_fig.savefig('wholefig.png')
 
@@ -89,9 +107,38 @@ resized = cv2.resize(img, (600,300))
 cv2.imwrite('wholefig.png', resized)
 
 img = cv2.imread('tempfig.png')
-resized = cv2.resize(img, (600,300))
+resized = cv2.resize(img, (450,300))
 cv2.imwrite('tempfig.png', resized)
 
+
+fig = pygmt.Figure()
+# print('here')
+# print(dataarray.data)
+fig.histogram(
+    data=dataarray.data,
+    # Define the frame, add a title, and set the background color to
+    # "lightgray". Add labels to the x-axis and y-axis
+    frame=["WSne+tHistogram+glightgray", "x+lElevation (m)", "y+lCounts"],
+    # Generate evenly spaced bins by increments of 5
+    series=1,
+    annotate=True,
+    # Use "red3" as color fill for the bars
+    fill="#060b27",
+    # Use the pen parameter to draw the outlines with a width of 1 point
+    pen="1p",
+    # Choose histogram type 0, i.e., counts [Default]
+    histtype=0,
+)
+
+fig.savefig('histogram.png', resize="300")
+
+img = cv2.imread('histogram.png')
+resized = cv2.resize(img, (500,300))
+cv2.imwrite('histogram.png', resized)
+
+img = cv2.imread('logo.png')
+resized = cv2.resize(img, (300,100))
+cv2.imwrite('logo_resized.png', resized)
 
 def change_view():
     import os
@@ -122,7 +169,7 @@ def change_view():
     zoomed_fig.savefig('tempfig.png')
 
     img = cv2.imread('tempfig.png')
-    resized = cv2.resize(img, (600,300))
+    resized = cv2.resize(img, (450,300))
     cv2.imwrite('tempfig.png', resized)
 
     print('done')
@@ -149,19 +196,16 @@ def change_zoomed_region(region):
         cmap=cmap
     )
 
-
+    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"])
     zoomed_fig.savefig('tempfig.png')
 
     img = cv2.imread('tempfig.png')
-    resized = cv2.resize(img, (600,300))
+    resized = cv2.resize(img, (450,300))
     cv2.imwrite('tempfig.png', resized)
 
     print('done')
 
 
-
-import matplotlib
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import PySimpleGUI as sg
 
 # Define the window layout
@@ -169,17 +213,18 @@ whole_graph = sg.Graph(canvas_size=(600,300), graph_bottom_left=(0, 0), graph_to
 cmaps = ['oleron', 'vic', 'gray', 'acton', 'oslo', 'roma']
 
 layout = [
-    [sg.Image('./logo.png', background_color='#060b27')],
-    [sg.Image('./rotating_moon2.gif', key = "MoonGIF", background_color='#060b27')],
+    [sg.Image('./rotating_moon2.gif', key = "MoonGIF", background_color='#060b27'), sg.Image('./logo_resized.png', background_color='#060b27')],
     [sg.Text("Combatting the complex terrain, to take the next wave of humans to the moon.", font=('Avenir', 25), background_color='#060b27')],
+    # [sg.Image('./histogram.png', background_color='#060b27'), sg.Text("On the left, see the number of possible landing sites and their heights!", font=('Avenir', 25), background_color='#060b27')],
     [sg.Text("The picture below shows the surface of our moon. Its uneven terrain is tricky to land a rocket. Have a look for yourself, by drawing a rectangle over a region to zoom in!", font=('Avenir', 15), background_color='#060b27')],
-    [whole_graph, sg.Graph(canvas_size=(600,300), graph_bottom_left=(0, 0), graph_top_right=(600,300), enable_events=True, drag_submits=True, key='ZoomedGraph')],
+    [sg.Text("On the far right is the heights of all the possible landing sites. Can you find them?", font=('Avenir', 15), background_color='#060b27')],
+    [whole_graph, sg.Graph(canvas_size=(450,300), graph_bottom_left=(0, 0), graph_top_right=(450,300), enable_events=True, drag_submits=True, key='ZoomedGraph'), sg.Image('./histogram.png', background_color='#060b27')],
     [sg.Text('Change the height of the 3D view',font=('Avenir', 12), background_color='#060b27'), 
         sg.Button("Higher"), sg.Button('Lower'), sg.Button('Left'), sg.Button('Right')
     ],
     [sg.Text("Why are we doing this?", font=('Avenir', 30), background_color='#060b27')],
     [sg.Text("1. We’re building on more than 50 years of exploration experience to reignite America’s passion for discovery.", font=('Avenir', 18), background_color='#060b27')],
-    [sg.Text("2. Artemis missions enable a growing lunar economy by fueling new industries, supporting job growth, and furthering the demand for a skilled workforce..", font=('Avenir', 18), background_color='#060b27')],
+    [sg.Text("2. Artemis missions enable a growing lunar economy by fueling new industries, supporting job growth, and furthering the demand for a skilled workforce.", font=('Avenir', 18), background_color='#060b27')],
     [sg.Text("3. Inspiring the next generation", font=('Avenir', 18), background_color='#060b27')]
     
 ]
