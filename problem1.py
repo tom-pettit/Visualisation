@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import rioxarray
 
 # load in the displacement dataset
-dataarray =  rioxarray.open_rasterio('./dataset/displacement_dataset/ldem_16.tif')
+dataarray =  rioxarray.open_rasterio('./dataset/displacement_dataset/ldem_4.tif')
 tif_shape = dataarray.shape
 dataarray = dataarray.isel(band=0)
 import xarray as xr
@@ -26,7 +26,7 @@ new_grid = xr.DataArray(
 
 # specify some parameters for the visualisation
 # specify the region of the zoomed in area
-region = "90/110/5/35"
+region = "90/110/5/25"
 # convert the region string into longitude and latitude values in order to draw a rectangle
 minlong, maxlong, minlat, maxlat = region.split('/')
 minlong, maxlong, minlat, maxlat = float(minlong), float(maxlong), float(minlat), float(maxlat)
@@ -46,7 +46,7 @@ cmap = 'gray'
 # create a grid image of the whole displacement map
 whole_fig = pygmt.Figure()
 whole_fig.grdimage(grid=new_grid, cmap=cmap, projection="Q12C")
-whole_map_colorbar = whole_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"], position='JT')
+whole_map_colorbar = whole_fig.colorbar(frame=["a1", "x+lElevation", "y+lkm"], position='JT')
 
 # save the figure to a file
 whole_fig.savefig('wholefig.png')
@@ -69,7 +69,7 @@ zoomed_fig.grdview(
 )
 
 # create a colourmap for the zoomed in 3D perspective figure
-zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"])
+zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lkm"])
 zoomed_fig.savefig('tempfig.png')
 
 # create a figure for the flat version of the zoomed in region 
@@ -87,11 +87,11 @@ resized = cv2.resize(img, (600,385))
 cv2.imwrite('wholefig.png', resized)
 
 img = cv2.imread('tempfig.png')
-resized = cv2.resize(img, (600,300))
+resized = cv2.resize(img, (600,300), interpolation=cv2.INTER_AREA)
 cv2.imwrite('tempfig.png', resized)
 
 img = cv2.imread('tempflatfig.png')
-resized = cv2.resize(img, (600,300))
+resized = cv2.resize(img, (600,300), interpolation=cv2.INTER_AREA)
 cv2.imwrite('tempflatfig.png', resized)
 
 
@@ -118,13 +118,13 @@ def change_perspective(perspective):
     )
     
     # the color bar
-    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"])
+    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lkm"])
 
     zoomed_fig.savefig('tempfig.png')
 
     # resize the image for the GUI
     img = cv2.imread('tempfig.png')
-    resized = cv2.resize(img, (600,300))
+    resized = cv2.resize(img, (600,300), interpolation=cv2.INTER_AREA)
     cv2.imwrite('tempfig.png', resized)
 
 # function to change the region the scientist would like to zoom into
@@ -146,7 +146,7 @@ def change_zoomed_region(region):
     )
 
     # the colorbar
-    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"])
+    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lkm"])
 
     # re-create the flat version of the zoomed in region
     zoomed_flat_fig = pygmt.Figure()
@@ -157,13 +157,13 @@ def change_zoomed_region(region):
     # output the flat version of the 3D perspective figure to a file and resize for the GUI
     zoomed_flat_fig.savefig('tempflatfig.png')
     img = cv2.imread('tempflatfig.png')
-    resized = cv2.resize(img, (600,300))
+    resized = cv2.resize(img, (600,300), interpolation=cv2.INTER_AREA)
     cv2.imwrite('tempflatfig.png', resized)
 
     # output the 3D perspective figure to a file and resize for the GUI
     zoomed_fig.savefig('tempfig.png')
     img = cv2.imread('tempfig.png')
-    resized = cv2.resize(img, (600,300))
+    resized = cv2.resize(img, (600,300), interpolation=cv2.INTER_AREA)
     cv2.imwrite('tempfig.png', resized)
 
 # function to change the height at which contour lines are drawn on the flat version of the region
@@ -180,7 +180,7 @@ def change_contours(height_choice):
     # save the figure to a file and resize for the GUI
     zoomed_flat_fig.savefig('tempflatfig.png')
     img = cv2.imread('tempflatfig.png')
-    resized = cv2.resize(img, (600,300))
+    resized = cv2.resize(img, (600,300), interpolation=cv2.INTER_AREA)
     cv2.imwrite('tempflatfig.png', resized)
 
 # function to change the colour map for all the figures on the GUI
@@ -189,7 +189,7 @@ def change_colourmap(cmap):
     whole_fig = pygmt.Figure()
     whole_fig.grdimage(grid=new_grid, cmap=cmap, projection="Q12C")
     # add the colorbar for this new figure
-    whole_map_colorbar = whole_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"], position='JT')
+    whole_map_colorbar = whole_fig.colorbar(frame=["a1", "x+lElevation", "y+lkm"], position='JT')
 
     # save the figure to a file
     whole_fig.savefig('wholefig.png')
@@ -208,7 +208,7 @@ def change_colourmap(cmap):
         cmap=cmap
     )
     # add the colorbar for the new figure
-    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"])
+    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lkm"])
     zoomed_fig.savefig('tempfig.png')
 
     # re-create the figure for the flat version of the 3D perspective figure
@@ -223,11 +223,11 @@ def change_colourmap(cmap):
     cv2.imwrite('wholefig.png', resized)
 
     img = cv2.imread('tempflatfig.png')
-    resized = cv2.resize(img, (600,300))
+    resized = cv2.resize(img, (600,300), interpolation=cv2.INTER_AREA)
     cv2.imwrite('tempflatfig.png', resized)
 
     img = cv2.imread('tempfig.png')
-    resized = cv2.resize(img, (600,300))
+    resized = cv2.resize(img, (600,300), interpolation=cv2.INTER_AREA)
     cv2.imwrite('tempfig.png', resized)
 
 # use PySimpleGUI for the GUI
@@ -257,7 +257,7 @@ layout = [
      sg.Graph(canvas_size=(600,300), graph_bottom_left=(0, 0), graph_top_right=(600,300), enable_events=True, drag_submits=True, key='ZoomedFlatGraph')
      ],
     [sg.Text("Click on the flat version of the zoomed in area to sample point heights.")],
-    [sg.Text('Longitude: '+"{:.3f}".format(selected_long)+' Latitude: '+"{:.3f}".format(selected_lat)+' Height: '+"{:.3f}".format(float(selected_point_height))+'m',font=('Arial Bold', 20), key='ChosenPointHeight', justification='left')],
+    [sg.Text('Longitude: '+"{:.3f}".format(selected_long)+' Latitude: '+"{:.3f}".format(selected_lat)+' Height: '+"{:.3f}".format(float(selected_point_height))+'km',font=('Arial Bold', 20), key='ChosenPointHeight', justification='left')],
 
     [sg.Text('Enter a View Azimuth and View Elevation in the form: [View Azimuth, View Elevation]',font=('Arial Bold', 12)), 
         sg.Input('', enable_events=True, key='Perspective', font=('Arial Bold', 20), expand_x=True, justification='center'),
@@ -414,7 +414,7 @@ while True:
        selected_point_height = new_grid.sel(x = selected_long, y = selected_lat, method = 'nearest').data
 
        # udpate the text showing the scientist the point that they clicked and the height of the surface at that point
-       window['ChosenPointHeight'].update('Longitude: '+"{:.3f}".format(selected_long)+' Latitude: '+"{:.3f}".format(selected_lat)+' Height: '+"{:.3f}".format(float(selected_point_height))+'m')
+       window['ChosenPointHeight'].update('Longitude: '+"{:.3f}".format(selected_long)+' Latitude: '+"{:.3f}".format(selected_lat)+' Height: '+"{:.3f}".format(float(selected_point_height))+'km')
 
    # if the scientist has stopped dragging the rectangular box for the zoomed in region 
    elif event == 'WholeGraph+UP':  
