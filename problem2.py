@@ -51,7 +51,7 @@ color_grid = xr.DataArray(
 
 # specify some parameters for the visualisation
 # specify the region of the zoomed in area
-region = "90/110/5/35"
+region = "90/110/5/25"
 # convert the region string into longitude and latitude values in order to draw a rectangle
 minlong, maxlong, minlat, maxlat = region.split('/')
 minlong, maxlong, minlat, maxlat = float(minlong), float(maxlong), float(minlat), float(maxlat)
@@ -91,7 +91,7 @@ zoomed_fig.grdview(
 )
 
 # create a colourmap for the zoomed in 3D perspective figure
-zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"])
+zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lkm"])
 zoomed_fig.savefig('tempfig.png')
 import cv2 
 
@@ -101,7 +101,7 @@ resized = cv2.resize(img, (600,300))
 cv2.imwrite('wholefig.png', resized)
 
 img = cv2.imread('tempfig.png')
-resized = cv2.resize(img, (450,300))
+resized = cv2.resize(img, (550,300), interpolation=cv2.INTER_AREA)
 cv2.imwrite('tempfig.png', resized)
 
 # create the histogram figure for showing the heights of possible landing sites
@@ -110,7 +110,7 @@ fig.histogram(
     data=dataarray.data,
     # define the frame, add a title, and set the background color to
     # "lightgray". Add labels to the x-axis and y-axis
-    frame=["WSne+tHistogram+glightgray", "x+lElevation (m)", "y+lCounts"],
+    frame=["WSne+tHistogram+glightgray", "x+lElevation (km)", "y+lCounts"],
     # bins of size 1 (for each metre of elevation)
     series=1,
     # add numbers to the bars
@@ -124,11 +124,11 @@ fig.histogram(
 )
 
 # save the histogram figure to a file
-fig.savefig('histogram.png', resize="300")
+fig.savefig('histogram.png')
 
 # resize the histogram to fit on the GUI
 img = cv2.imread('histogram.png')
-resized = cv2.resize(img, (500,300))
+resized = cv2.resize(img, (400,300), interpolation=cv2.INTER_AREA)
 cv2.imwrite('histogram.png', resized)
 
 # resize the Artemis 3 mission logo to fit on the top of the GUI
@@ -160,14 +160,14 @@ def change_view():
     )
     
     # add the color bar 
-    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"])
+    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lkm"])
 
     # save the figure to a file
     zoomed_fig.savefig('tempfig.png')
 
     # resize the figure to fit on the GUI
     img = cv2.imread('tempfig.png')
-    resized = cv2.resize(img, (450,300))
+    resized = cv2.resize(img, (550,300), interpolation=cv2.INTER_AREA)
     cv2.imwrite('tempfig.png', resized)
 
 # function to change the region of the 3D perspective figure
@@ -190,14 +190,14 @@ def change_zoomed_region(region):
     )
 
     # add the colour bar
-    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lm"])
+    zoomed_fig.colorbar(frame=["a1", "x+lElevation", "y+lkm"])
 
     # save the figure to a file
     zoomed_fig.savefig('tempfig.png')
 
     # resize the figure to fit on the GUI
     img = cv2.imread('tempfig.png')
-    resized = cv2.resize(img, (450,300))
+    resized = cv2.resize(img, (550,300), interpolation=cv2.INTER_AREA)
     cv2.imwrite('tempfig.png', resized)
 
 # use PySimpleGUI to create the GUI
@@ -217,7 +217,7 @@ layout = [
     [sg.Text("Combatting the complex terrain, to take the next wave of humans to the moon.", font=('Avenir', 25), background_color='#060b27')],
     [sg.Text("The picture below shows the surface of our moon. Its uneven terrain is tricky to land a rocket. Have a look for yourself, by drawing a rectangle over a region to zoom in!", font=('Avenir', 15), background_color='#060b27')],
     [sg.Text("On the far right is the heights of all the possible landing sites. Can you find them?", font=('Avenir', 15), background_color='#060b27')],
-    [whole_graph, sg.Graph(canvas_size=(450,300), graph_bottom_left=(0, 0), graph_top_right=(450,300), enable_events=True, drag_submits=True, key='ZoomedGraph'), sg.Image('./histogram.png', background_color='#060b27')],
+    [whole_graph, sg.Graph(canvas_size=(550,300), graph_bottom_left=(0, 0), graph_top_right=(550,300), enable_events=True, drag_submits=True, key='ZoomedGraph'), sg.Image('./histogram.png', background_color='#060b27')],
     [sg.Text('Change the height of the 3D view',font=('Avenir', 12), background_color='#060b27'), 
         sg.Button("Higher"), sg.Button('Lower'), sg.Button('Left'), sg.Button('Right')
     ],
